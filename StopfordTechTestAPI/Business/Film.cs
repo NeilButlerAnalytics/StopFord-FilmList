@@ -21,7 +21,8 @@ namespace StopfordTechTestAPI.Business
                     FilmModel fm = new FilmModel();
                     fm.FilmId = Convert.ToInt64(values[0]);
                     fm.FilmName = values[1];
-                    fm.Tagline = values[1];
+                    fm.Tagline = values[2];
+                    fm.Rating = Convert.ToInt16(values[3]);
                     fml.Add(fm);
                 }
             }
