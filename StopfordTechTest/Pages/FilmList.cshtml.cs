@@ -1,83 +1,75 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Newtonsoft.Json;
 using StopfordTechTest.Model;
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace StopfordTechTest.Pages
 {
     public class FilmListModel : PageModel
     {
+        // New static fields for caching
+        private static List<FilmModel> CachedFilms { get; set; } // New
+        private static DateTime CacheTimestamp { get; set; } // New
+        private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(10); // New
 
         public List<FilmModel> Films { get; set; }
 
-
         public async Task OnGetAsync()
         {
-            Task<string> jsonString = null;
-            List<FilmModel> filmList = new List<FilmModel>();
-
-
-            using (var client = new HttpClient())
+            // Use cache if valid, otherwise fetch from API
+            if (CachedFilms == null || DateTime.Now - CacheTimestamp > CacheDuration) // New
             {
-                using (HttpResponseMessage response = await client.GetAsync("https://localhost:7127/api/Film/ReturnFilmList"))
-                {
-                    if (response.IsSuccessStatusCode)
-                    {
-                        using (HttpContent content = response.Content)
-                        {
-                            // Get contents of page as a String.
-                            jsonString = content.ReadAsStringAsync();
-                            jsonString.Wait();
-                            filmList = JsonConvert.DeserializeObject<List<FilmModel>>(jsonString.Result);
-                            Films = filmList;
-                        }
-                    }
-                    else
-                    {
-                        throw new Exception("An error has occured");
-                    }
-                }
+                await GetFilmsAsync(); // Modified to use a new method
             }
+            Films = CachedFilms; // New
         }
 
-        // OnPost changed to search for name initially
-        // I have added further searching options, user can also search for a film by rating.
-        public void OnPost(string search, int? rating)
+        public async Task OnPostAsync(string search, int? rating) // Modified to async
         {
-            Task<string> jsonString = null;
-            List<FilmModel> filmList = new List<FilmModel>();
-
-            using (var client = new HttpClient())
+            // Use cache if valid, otherwise fetch from API
+            if (CachedFilms == null || DateTime.Now - CacheTimestamp > CacheDuration) // New
             {
-                using (HttpResponseMessage response = client.GetAsync("https://localhost:7127/api/Film/ReturnFilmList").Result)
-                {
-                    if (response.IsSuccessStatusCode)
-                    {
-                        using (HttpContent content = response.Content)
-                        {
-                            jsonString = content.ReadAsStringAsync();
-                            filmList = JsonConvert.DeserializeObject<List<FilmModel>>(jsonString.Result);
-                        }
-                    }
-                    else
-                    {
-                        throw new Exception("An error has occurred");
-                    }
-                }
+                await GetFilmsAsync(); // Modified to use a new method
             }
+
+            var filteredFilms = CachedFilms;
 
             if (!string.IsNullOrEmpty(search))
             {
-                filmList = filmList.FindAll(f => f.FilmName.Contains(search, StringComparison.OrdinalIgnoreCase));
-            }
-            if (rating.HasValue)
-            {
-                filmList = filmList.FindAll(f => f.Rating == rating.Value);
+                filteredFilms = filteredFilms.Where(f => f.FilmName.Contains(search, StringComparison.OrdinalIgnoreCase)).ToList();
             }
 
-                Films = filmList;
+            if (rating.HasValue)
+            {
+                filteredFilms = filteredFilms.Where(f => f.Rating == rating.Value).ToList();
+            }
+
+            Films = filteredFilms;
+        }
+
+        // New method to fetch films and update the cache
+        private async Task GetFilmsAsync() // New
+        {
+            using (var client = new HttpClient())
+            {
+                HttpResponseMessage response = await client.GetAsync("https://localhost:7127/api/Film/ReturnFilmList");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var jsonString = await response.Content.ReadAsStringAsync();
+                    CachedFilms = JsonConvert.DeserializeObject<List<FilmModel>>(jsonString);
+                    CacheTimestamp = DateTime.Now; // New
+                }
+                else
+                {
+                    throw new Exception("An error has occurred while fetching data from the API.");
+                }
+            }
         }
     }
 }
