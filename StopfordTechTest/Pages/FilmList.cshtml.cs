@@ -42,25 +42,23 @@ namespace StopfordTechTest.Pages
             }
         }
 
-
-
-        public void OnPost(string search)
+        // OnPost changed to search for name initially
+        // I have added further searching options, user can also search for a film by rating.
+        public void OnPost(string search, int? rating)
         {
-            Task<string> jsonString = null; // To hold the JSON string fetched from the API
-            List<FilmModel> filmList = new List<FilmModel>(); // Empty list initialised to store the film data
+            Task<string> jsonString = null;
+            List<FilmModel> filmList = new List<FilmModel>();
 
             using (var client = new HttpClient())
             {
-                //Sends a GET request to the URL to fetch the list of films.
                 using (HttpResponseMessage response = client.GetAsync("https://localhost:7127/api/Film/ReturnFilmList").Result)
                 {
-                    // Only progress if request was successful
                     if (response.IsSuccessStatusCode)
                     {
                         using (HttpContent content = response.Content)
                         {
-                            jsonString = content.ReadAsStringAsync(); // Read the response content
-                            filmList = JsonConvert.DeserializeObject<List<FilmModel>>(jsonString.Result); // Converts JSON string to FilmList
+                            jsonString = content.ReadAsStringAsync();
+                            filmList = JsonConvert.DeserializeObject<List<FilmModel>>(jsonString.Result);
                         }
                     }
                     else
@@ -69,17 +67,17 @@ namespace StopfordTechTest.Pages
                     }
                 }
             }
-            // Just a User error check, if the user enters a search then we can display a search result
-            // But if no serach is specified then just assign FilmList.
-            // This ensures that the Films property always contains the appropriate data to display.
+
             if (!string.IsNullOrEmpty(search))
             {
-                Films = filmList.FindAll(f => f.FilmName.Contains(search, StringComparison.OrdinalIgnoreCase));
+                filmList = filmList.FindAll(f => f.FilmName.Contains(search, StringComparison.OrdinalIgnoreCase));
             }
-            else
+            if (rating.HasValue)
             {
-                Films = filmList;
+                filmList = filmList.FindAll(f => f.Rating == rating.Value);
             }
+
+                Films = filmList;
         }
     }
 }
