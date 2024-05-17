@@ -1,0 +1,49 @@
+﻿@page
+@model StopfordTechTest.Pages.FilmListModel
+@{
+    ViewData["Title"] = "Film List";
+}
+
+<form method="post">
+
+
+    <div class="row mt-5">
+        <div class="col">
+            <label for="search">Search Name of Film:</label>
+            <input type="search" name="search">
+        </div>
+        <div class="col">
+            <input type="submit">
+        </div>
+    </div>
+
+    
+    
+</form>
+
+
+
+
+<div class="row mt-5">
+    <table class="arrowes-table table-striped">
+        <thead>
+            <tr>
+                <th>Film Id</th>
+                <th>Film Name</th>
+                <th>Tag Line</th>
+
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var film in Model.Films)
+            {
+                <tr>
+                    <td>@film.FilmId</td>
+                    <td>@film.FilmName</td>
+                    <td>@film.Tagline</td>
+
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
